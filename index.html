@@ -1,0 +1,443 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>PACE-Algorithm-OkLab</title>
+
+    <style>
+        html {
+            font-size: 100%;
+            /* or 90%, 112.5%, etc */
+        }
+
+        body {
+            font-family: Arial, sans-serif;
+            background: #111;
+            color: white;
+            text-align: center;
+            padding: 1.25rem;
+            font-size: 1rem;
+        }
+
+        h1 {
+            font-size: 1.25rem;
+            margin-bottom: 1.25rem;
+        }
+
+        input {
+            margin: 0 auto;
+            display: block;
+        }
+
+        #comparison-wrapper {
+            position: relative;
+            display: inline-block;
+            margin-top: 1.25rem;
+            max-width: 90%;
+            overflow: hidden;
+            border-radius: 0.625rem;
+            box-shadow: 0 0.625rem 1.875rem rgba(0, 0, 0, 0.5);
+        }
+
+        canvas {
+            display: block;
+            max-width: 100%;
+            height: auto;
+        }
+
+        #processedCanvas {
+            position: absolute;
+            top: 0;
+            left: 0;
+            clip-path: inset(0 50% 0 0);
+        }
+
+        input[type="file"] {
+            display: none;
+        }
+
+        .custom-upload {
+            display: block;
+            margin: 0 auto 1.2em;
+            width: fit-content;
+            padding: 0.6em 1.6em;
+            font-size: 0.95rem;
+            font-weight: 500;
+            color: #ffffff;
+            cursor: pointer;
+
+            background: rgba(255, 255, 255, 0.06);
+            backdrop-filter: blur(14px);
+            -webkit-backdrop-filter: blur(14px);
+
+            border: 1px solid rgba(0, 255, 255, 0.25);
+            border-radius: 2em;
+
+            box-shadow:
+                0 0.5em 1.5em rgba(0, 0, 0, 0.5),
+                0 0 1em rgba(0, 255, 255, 0.15),
+                /* subtle cyan glow */
+                inset 0 0 0.6em rgba(255, 255, 255, 0.05);
+
+            transition: all 0.25s ease;
+        }
+
+        .custom-upload:hover {
+            background: rgba(0, 255, 255, 0.08);
+            border: 1px solid rgba(0, 255, 255, 0.5);
+
+            box-shadow:
+                0 0.8em 2em rgba(0, 0, 0, 0.6),
+                0 0 1.6em rgba(0, 255, 255, 0.35),
+                inset 0 0 0.8em rgba(255, 255, 255, 0.08);
+
+            transform: translateY(-0.08em);
+        }
+
+        .custom-upload:active {
+            transform: scale(0.97);
+        }
+
+
+        #slider {
+            position: absolute;
+            top: 0;
+            bottom: 0;
+            left: 50%;
+            width: 0.1875rem;
+            background: #00ffff;
+            cursor: ew-resize;
+            touch-action: none;
+        }
+
+        /* Add ripple animation */
+        @keyframes sliderRipple {
+            0% {
+                transform: translateY(-50%) scale(1);
+                opacity: 0.6;
+            }
+
+            70% {
+                transform: translateY(-50%) scale(1.8);
+                opacity: 0;
+            }
+
+            100% {
+                transform: translateY(-50%) scale(1.8);
+                opacity: 0;
+            }
+        }
+
+        #slider::before {
+            content: "";
+            position: absolute;
+            top: 50%;
+            left: -0.7em;
+            width: 1.75em;
+            height: 1.75em;
+            background: #00ffff;
+            border-radius: 50%;
+            transform: translateY(-50%);
+            z-index: 2;
+        }
+
+        /* Add ripple layer */
+        #slider::after {
+            content: "";
+            position: absolute;
+            top: 50%;
+            left: -0.7em;
+            width: 1.75em;
+            height: 1.75em;
+            background: #00ffff;
+            border-radius: 50%;
+            transform: translateY(-50%);
+            animation: sliderRipple 1.5s infinite;
+            z-index: 1;
+        }
+
+        .label {
+            position: absolute;
+            top: 0.625rem;
+            font-size: 0.875rem;
+            background: rgba(0, 0, 0, 0.6);
+            padding: 0.3125rem 0.625rem;
+            border-radius: 0.3125rem;
+        }
+
+        #label-original {
+            left: 0.625rem;
+        }
+
+        #label-processed {
+            right: 0.625rem;
+        }
+
+        .meta-box {
+            position: absolute;
+            bottom: 0.9375rem;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(0, 0, 0, 0.65);
+            padding: 0.5rem 1rem;
+            font-size: 0.8125rem;
+            border-radius: 1.25rem;
+
+            display: flex;
+            gap: 1.25rem;
+            align-items: center;
+
+            white-space: nowrap;
+            max-width: 90%;
+            overflow-x: auto;
+            scrollbar-width: none;
+        }
+
+        .meta-box::-webkit-scrollbar {
+            display: none;
+        }
+
+        .toast {
+            position: fixed;
+            bottom: 2em;
+            left: 50%;
+            transform: translateX(-50%);
+            padding: 0.8em 1.6em;
+            font-size: 0.9rem;
+            color: #fff;
+
+            background: rgba(0, 255, 255, 0.12);
+            backdrop-filter: blur(12px);
+            border: 1px solid rgba(0, 255, 255, 0.4);
+            border-radius: 2em;
+
+            box-shadow: 0 0 1.2em rgba(0, 255, 255, 0.3);
+
+            opacity: 0;
+            pointer-events: none;
+            transition: all 0.3s ease;
+        }
+
+        .toast.show {
+            opacity: 1;
+            bottom: 3em;
+        }
+
+        .global-processing {
+            position: fixed;
+            inset: 0;
+
+            display: flex;
+            align-items: center;
+            justify-content: center;
+
+            background: rgba(0, 0, 0, 0.35);
+            backdrop-filter: blur(4px);
+
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.25s ease;
+            z-index: 9999;
+        }
+
+        .global-processing.active {
+            opacity: 1;
+            pointer-events: all;
+        }
+
+        .global-spinner {
+            width: 2.8em;
+            height: 2.8em;
+            border: 0.25em solid rgba(0, 255, 255, 0.2);
+            border-top: 0.25em solid #00ffff;
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+        }
+
+        @keyframes spin {
+            to {
+                transform: rotate(360deg);
+            }
+        }
+
+        .font-12 {
+            font-size: 0.75rem;
+        }
+    </style>
+</head>
+
+<body>
+
+    <h1>PACE-V2.js – Perceptual Adaptive Contrast Enhancement</h1>
+    <p class="font-12">
+        Intelligently enhances contrast by adapting to image texture, edges, and noise — preserving detail while
+        avoiding over-amplification.
+    </p>
+
+    <label for="fileInput" class="custom-upload">Choose Image</label>
+    <input type="file" id="fileInput" accept="image/*">
+
+    <div id="comparison-wrapper" style="display:none;">
+        <canvas id="originalCanvas"></canvas>
+        <canvas id="processedCanvas"></canvas>
+        <div id="slider"></div>
+        <div id="label-original" class="label">Original</div>
+        <div id="label-processed" class="label">PACE.js</div>
+        <div id="meta-info" class="meta-box"></div>
+
+        <div class="processing-overlay" id="processingOverlay">
+            <div class="processing-spinner"></div>
+        </div>
+
+    </div>
+
+    <div class="global-processing" id="globalProcessing">
+        <div class="global-spinner"></div>
+    </div>
+
+    <script type="module">
+        import { applyPACEV3 } from "./PACE-V3.js";
+        window.applyPACEV3 = applyPACEV3;
+    </script>
+    </script>
+
+    <script>
+        // ---------- Loader Logic ----------
+        function showProcessing() {
+            document.getElementById("globalProcessing").classList.add("active");
+        }
+
+        function hideProcessing() {
+            document.getElementById("globalProcessing").classList.remove("active");
+        }
+
+
+        // ---------- Toast Logic ----------
+        function notifyComplete() {
+            // Vibrate (works on supported mobile devices)
+            if (navigator.vibrate) {
+                navigator.vibrate([120, 60, 120]); // short pattern
+            }
+
+            // showToast("Processing Complete ✅");
+            showToast("Boom! All done 🔥");
+        }
+
+        function showToast(message) {
+            let toast = document.createElement("div");
+            toast.className = "toast";
+            toast.textContent = message;
+            document.body.appendChild(toast);
+
+            requestAnimationFrame(() => toast.classList.add("show"));
+
+            setTimeout(() => {
+                toast.classList.remove("show");
+                setTimeout(() => toast.remove(), 300);
+            }, 2500);
+        }
+
+        // ---------- Slider Logic ----------
+        const slider = document.getElementById("slider");
+        const processedCanvas = document.getElementById("processedCanvas");
+        const wrapper = document.getElementById("comparison-wrapper");
+
+        let isDragging = false;
+
+        slider.addEventListener("pointerdown", (e) => {
+            isDragging = true;
+            slider.setPointerCapture(e.pointerId);
+        });
+
+        window.addEventListener("pointerup", () => {
+            isDragging = false;
+        });
+
+        window.addEventListener("pointermove", (e) => {
+            if (!isDragging) return;
+
+            const rect = wrapper.getBoundingClientRect();
+            let offset = e.clientX - rect.left;
+            offset = Math.max(0, Math.min(offset, rect.width));
+
+            const percent = (offset / rect.width) * 100;
+
+            slider.style.left = percent + "%";
+            processedCanvas.style.clipPath = `inset(0 ${100 - percent}% 0 0)`;
+        });
+
+
+        // ---------- File Handling ----------
+        const fileInput = document.getElementById("fileInput");
+        const originalCanvas = document.getElementById("originalCanvas");
+        const processedCanvasEl = document.getElementById("processedCanvas");
+
+        fileInput.addEventListener("change", handleImage);
+
+        const calPerformance = {
+            canStart: true,
+            start() {
+                if (!this.canStart) return;
+                this.startTime = performance.now();
+                this.canStart = false;
+            },
+            stop() {
+                if (this.canStart) return;
+                this.endTime = performance.now();
+                this.canStart = true;
+                this.duration = ((this.endTime - this.startTime) / 1000).toFixed(3);
+                console.log(`Total processing time: ${this.duration} sec`);
+            }
+        }
+
+        function handleImage(e) {
+            const file = e.target.files[0];
+            if (!file) return;
+            showProcessing();
+            const reader = new FileReader();
+            reader.onload = ({ target }) => {
+                const img = new Image();
+                img.onload = async () => {
+                    // showProcessing();
+                    // await new Promise(resolve => requestAnimationFrame(resolve));
+                    wrapper.style.display = "inline-block";
+
+                    originalCanvas.width = processedCanvasEl.width = img.width;
+                    originalCanvas.height = processedCanvasEl.height = img.height;
+
+                    const ctxOriginal = originalCanvas.getContext("2d");
+                    const ctxProcessed = processedCanvasEl.getContext("2d");
+
+                    ctxOriginal.drawImage(img, 0, 0);
+                    ctxProcessed.drawImage(img, 0, 0);
+
+                    const imgData = ctxProcessed.getImageData(0, 0, img.width, img.height);
+                    calPerformance.start();
+                    const result = await applyPACEV3(imgData, img.width, img.height);
+                    calPerformance.stop();
+                    // console.log(result);
+                    ctxProcessed.putImageData(result, 0, 0);
+
+                    slider.style.left = "50%";
+                    processedCanvasEl.style.clipPath = "inset(0 50% 0 0)";
+                    const metaBox = document.getElementById("meta-info");
+
+                    metaBox.innerHTML = `
+                    <span><strong>Time:</strong> ${calPerformance.duration}sec</span>
+                   
+                    `;
+                    hideProcessing();
+                    notifyComplete();
+
+                };
+                img.src = target.result;
+            };
+            reader.readAsDataURL(file);
+        }
+    </script>
+
+</body>
+
+</html>

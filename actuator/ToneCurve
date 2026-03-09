@@ -1,0 +1,30 @@
+function applyAdaptiveToneCurve(L, features) {
+
+    const size = L.length;
+    const out = new Float32Array(size);
+
+    const mean = features.distribution.mean;
+    const dynamicRange = features.distribution.dynamicRange;
+    const edgeDensity = features.structure.edgeDensity;
+
+    const m = mean;
+
+    const k =
+        6 *
+        dynamicRange *
+        (1 + edgeDensity);
+
+    for (let i = 0; i < size; i++) {
+
+        const v = L[i];
+
+        const y =
+            1 /
+            (1 + Math.exp(-k * (v - m)));
+
+        out[i] = y;
+    }
+
+    return out;
+
+}

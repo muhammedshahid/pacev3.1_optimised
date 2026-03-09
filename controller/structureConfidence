@@ -1,0 +1,18 @@
+function computeStructureConfidence(edgeDensity, noiseRatio) {
+    // 1. Normalize edge to soft confidence
+    const edgeSignal = 1 - Math.exp(-3.0 * edgeDensity);
+
+    // 2. Convert noise to suppression weight
+    const noiseSuppression = 1 / (1 + 2.5 * noiseRatio);
+
+    // 3. Combine with floor to prevent over-conservatism
+    const baseline = 0.55;
+
+    const confidence =
+        baseline +
+        (1 - baseline) *
+        edgeSignal *
+        noiseSuppression;
+
+    return Math.min(1, Math.max(0, confidence));
+}
